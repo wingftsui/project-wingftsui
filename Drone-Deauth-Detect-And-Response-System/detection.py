@@ -25,11 +25,16 @@ def detect_deauth(packet):
         pkt_type=packet.type
         pkt_subtype=packet.subtype
         
+        # The attacker's deauth attack conditions:
+        # (1) it is broadcast
+        # (2) it is management frame
+        # (3) it is deauth type
         if dest_mac =="ff:ff:ff:ff:ff:ff":
             if pkt_type==0 and pkt_subtype==12:
                 src_mac =packet.addr2
                 
                 print(f"Warning:Broadcast Deauth Attack Detected")
+                print(f"  - Destination Mac Address: {dest_mac}")
 
                 app.after(0, status_changed, src_mac)
 

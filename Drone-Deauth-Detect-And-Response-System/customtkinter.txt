@@ -1,3 +1,0 @@
-import customtkinter as ctk
-
-dd
