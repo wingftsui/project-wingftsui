@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from scapy.all import *
+from scapy.layers.dot11 import Dot11
 import threading
 
 ctk.set_appearance_mode("dark")
@@ -34,9 +35,16 @@ def detect_deauth(packet):
                 src_mac =packet.addr2
                 
                 print(f"Warning:Broadcast Deauth Attack Detected")
+                print(f"  - Source Mac Address: {src_mac}")
                 print(f"  - Destination Mac Address: {dest_mac}")
 
                 app.after(0, status_changed, src_mac)
 
+def keep_sniffing():
+    print("Monitoring WiFi Packets")
+    sniff(iface="wlan0",prn=detect_deauth,store=0)
+
+sniff_thread = threading.Thread(target=keep_sniffing,daemon=True)
+sniff_thread.start()
 
 app.mainloop()
