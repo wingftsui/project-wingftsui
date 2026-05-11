@@ -15,7 +15,7 @@ app.geometry("600x300")
 label = ctk.CTkLabel(app, text="Status:Detecting (Safe)", text_color="green",font=("Arial", 20))
 label.pack(pady=50)
 
-def trigger_warning():
+def trigger_warning(src_mac):
     global label, switch_var 
     label.configure(text="Warning:Deauth Detected！", text_color="red")
 
