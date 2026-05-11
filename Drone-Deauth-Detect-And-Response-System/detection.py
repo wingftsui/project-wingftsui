@@ -15,7 +15,7 @@ app.geometry("600x300")
 label = ctk.CTkLabel(app, text="Status:Detecting (Safe)", text_color="green",font=("Arial", 20))
 label.pack(pady=50)
 
-def status_changed():
+def trigger_warning():
     global label, switch_var 
     label.configure(text="Warning:Deauth Detected！", text_color="red")
 
@@ -27,18 +27,17 @@ def detect_deauth(packet):
         pkt_subtype=packet.subtype
         
         # The attacker's deauth attack conditions:
-        # (1) it is broadcast
-        # (2) it is management frame
-        # (3) it is deauth type
-        if dest_mac =="ff:ff:ff:ff:ff:ff":
-            if pkt_type==0 and pkt_subtype==12:
-                src_mac =packet.addr2
+        # (1) it is management frame
+        # (2) it is deauth type
+        # (3) RSSI 
+        if pkt_type==0 and pkt_subtype==12:
+            src_mac =packet.addr2
                 
-                print(f"Warning:Broadcast Deauth Attack Detected")
-                print(f"  - Source Mac Address: {src_mac}")
-                print(f"  - Destination Mac Address: {dest_mac}")
+            print(f"Warning:Broadcast Deauth Attack Detected")
+            print(f"  - Source Mac Address: {src_mac}")
+            print(f"  - Destination Mac Address: {dest_mac}")
 
-                app.after(0, status_changed, src_mac)
+            app.after(0, trigger_warning, src_mac)
 
 def keep_sniffing():
     print("Monitoring WiFi Packets")
