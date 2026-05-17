@@ -33,13 +33,14 @@ def detect_deauth(packet):
         
         # The attacker's deauth attack conditions (3 criteria):
         # (1) it is management frame
-        # (2) it is deauth type
+        # (2) it is deauth or disassociation.
         
         if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
             src_mac =packet.addr2
                 
             # (3) RSSI [The RSSI difference is larger than 10 dBm compare with 0.1s before.]
             if packet.haslayer(RadioTap)
+                current_rssi=packet
 
             print(f"Warning:Broadcast Deauth Attack Detected")
             print(f"  - Source Mac Address: {src_mac}")
