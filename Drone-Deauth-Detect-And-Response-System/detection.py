@@ -1,7 +1,8 @@
 import customtkinter as ctk
-from scapy.all import *
-from scapy.layers.dot11 import Dot11
+from scapy.all import sniff
+from scapy.layers.dot11 import Dot11, RadioTap
 import threading
+import time
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -15,9 +16,13 @@ app.geometry("600x300")
 label = ctk.CTkLabel(app, text="Status:Detecting (Safe)", text_color="green",font=("Arial", 20))
 label.pack(pady=50)
 
-def trigger_warning(src_mac):
+####################
+mac_history{}
+
+# Detailed Warning Display
+def trigger_warning(src_mac,rssi_delta):
     global label, switch_var 
-    label.configure(text="Warning:Deauth Detected！", text_color="red")
+    label.configure(text="Warning:Deauth Detected!"\MAC:{src_mac}\nRSSI Delta:{rssi_delta} dBm", text_color="red")
 
 def detect_deauth(packet):
     # Detect Wifi packet
@@ -26,13 +31,16 @@ def detect_deauth(packet):
         pkt_type=packet.type
         pkt_subtype=packet.subtype
         
-        # The attacker's deauth attack conditions:
+        # The attacker's deauth attack conditions (3 criteria):
         # (1) it is management frame
         # (2) it is deauth type
-        # (3) RSSI 
-        if pkt_type==0 and pkt_subtype==12:
+        
+        if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
             src_mac =packet.addr2
                 
+            # (3) RSSI [The RSSI difference is larger than 10 dBm compare with 0.1s before.]
+            if packet.haslayer(RadioTap)
+
             print(f"Warning:Broadcast Deauth Attack Detected")
             print(f"  - Source Mac Address: {src_mac}")
             print(f"  - Destination Mac Address: {dest_mac}")
