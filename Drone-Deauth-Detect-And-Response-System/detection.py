@@ -61,6 +61,10 @@ def detect_deauth(packet):
                                 print(f"  - Destination Mac Address: {dest_mac}")
 
                                 app.after(0, trigger_warning, src_mac)
+                            
+                            mac_history[src_mac]={"time":current_time,"rssi":current_rssi}
+                except AttributeError:
+                    pass
 
 def keep_sniffing():
     print("Monitoring WiFi Packets")
