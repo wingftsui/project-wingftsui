@@ -17,7 +17,7 @@ label = ctk.CTkLabel(app, text="Status:Detecting (Safe)", text_color="green",fon
 label.pack(pady=50)
 
 ####################
-mac_history{}
+mac_history={}
 
 # Detailed Warning Display
 def trigger_warning(src_mac,rssi_delta):
@@ -38,15 +38,29 @@ def detect_deauth(packet):
         if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
             src_mac =packet.addr2
                 
-            # (3) RSSI [The RSSI difference is larger than 10 dBm compare with 0.1s before.]
-            if packet.haslayer(RadioTap)
-                current_rssi=packet
+            # Detect the RSSI using RadioTap(the tag that alfa card added onto the packet)
+            if packet.haslayer(RadioTap):
+                try:
+                    current_rssi=packet[RadioTap].dBm_AntSignal
+                    current_time=packet.time
 
-            print(f"Warning:Broadcast Deauth Attack Detected")
-            print(f"  - Source Mac Address: {src_mac}")
-            print(f"  - Destination Mac Address: {dest_mac}")
+                    if current_rssi is not None:
+                        
+                        if src_mac in mac_history:
+                            previous_time=mac_history[src_mac]["time"]
+                            previous_rssi=mac_history[src_mac]["rssi"]
 
-            app.after(0, trigger_warning, src_mac)
+                            time_diff=current_time - previous_time
+                            rssi_delta=abs(current_rssi-previous_rssi)
+                             
+                            # The attacker's deauth attack conditions (3 criteria):
+                            # 3) RSSI [The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
+                            if time<=0.1 and rssi_delta>10:
+                                print(f"Warning:Broadcast Deauth Attack Detected")
+                                print(f"  - Source Mac Address: {src_mac}")
+                                print(f"  - Destination Mac Address: {dest_mac}")
+
+                                app.after(0, trigger_warning, src_mac)
 
 def keep_sniffing():
     print("Monitoring WiFi Packets")
