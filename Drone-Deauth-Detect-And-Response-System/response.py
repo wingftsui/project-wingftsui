@@ -11,3 +11,4 @@ def load_drone_json(filepath='drones.json'):
     except json.JSONDecodeError:
         print(f'Wrong file format. It should be json file')
 
+def trigger_land(drone_model=None,):
