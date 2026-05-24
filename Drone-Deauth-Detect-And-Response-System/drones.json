@@ -1,0 +1,8 @@
+{
+    "Tello": {
+        "default_ip": "192.168.10.1",
+        "port": 8889,
+        "initial_cmd": "command",
+        "land_cmd": "land"
+    }
+}
