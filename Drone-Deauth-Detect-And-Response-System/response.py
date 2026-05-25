@@ -4,6 +4,7 @@ import time
 import json
 import ipaddress
 import threading
+from scapy.all import RadioTap, Dot11, LLC, SNAP, IP, UDP, sendp
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -26,35 +27,8 @@ def load_drone_json(filepath='drones.json'):
     except json.JSONDecodeError:
         status_label.configure(text=f'Wrong file format. It should be json file')
 
-def active_response_land(drone_model=None,custom_ip=None):
-    profiles=load_drone_json()   
-    if drone_model is None:
-        status_label.configure(text="Please provide drone_model in the json config file.")
-        return
-    
-    # drone_model is absent in the json config file.
-    if drone_model not in profiles:
-        status_label.configure(f'Cannot find drone_model in json config file.')
-        return
-    
-    profile=profiles[drone_model]
-    target_ip=custom_ip if custom_ip else profile["default_ip"]
-    target_port=profile['port']
-
-    try:
-        ip_obj = ipaddress.IPv4Address(target_ip)
-        
-        if ip_obj.is_multicast or target_ip == "255.255.255.255" or target_ip == "0.0.0.0":
-            status_label.configure(text=f"Broadcast is rejected")
-            return
-            
-    except ipaddress.AddressValueError:
-        status_label.configure(text=f"{target_ip} is rejected")
-        return 
-
-    status_label.configure(text=f"\n Will send defense land command ")
-
-    sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+target_mac=.get("mac_address")
+iface-profile.get("interface","wlan0") 
     try:
         if profile.get("initial_command"):
             status_label.configure(text="send intial command")
