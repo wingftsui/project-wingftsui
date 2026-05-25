@@ -54,7 +54,7 @@ def active_response_land(drone_model=None,custom_ip=None):
 
     status_label.configure(text=f"\n Will send defense land command ")
 
-    sock=socket.socket(socket.AF_INET, socket.SOCK_)
+    sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         if profile.get("initial_command"):
             status_label.configure(text="send intial command")
@@ -65,7 +65,7 @@ def active_response_land(drone_model=None,custom_ip=None):
 
         if profile.get("land_cmd"):
             status_label.configure(text="Send land command now")
-            land_bytes=profile["land_command"].encode('utf-8')
+            land_bytes=profile["land_cmd"].encode('utf-8')
             sock.sendto(land_bytes, (target_ip,target_port))
             status_label.configure(text="Land command sent successfully")
         
