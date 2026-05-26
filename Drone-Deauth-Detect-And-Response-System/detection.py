@@ -31,40 +31,60 @@ def detect_deauth(packet):
         pkt_type=packet.type
         pkt_subtype=packet.subtype
         
-        # The attacker's deauth attack conditions (3 criteria):
+        # Check if it is deauth.
         # (1) it is management frame
         # (2) it is deauth or disassociation.
-        
         if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
             src_mac =packet.addr2
+            current_time=packet.time
+
+            current_seq=packet[Dot11].SC>>4
+            current_rssi=None
+            
+            if src_mac in mac_history:
+                previous_time = mac_history[src_mac]["time"]
+                previous_seq = mac_history[src_mac].get("seq", current_seq)
+                time_diff = current_time - previous_time
+                if time_diff <= 0.1:
                 
-            # Detect the RSSI using RadioTap(the tag that alfa card added onto the packet)
-            if packet.haslayer(RadioTap):
-                try:
-                    current_rssi=packet[RadioTap].dBm_AntSignal
-                    current_time=packet.time
+                # The system has 2 round checking to distinguish attacker deauth attack.
+                
+                # 1st Round Checking: Check the sequence number in management frame
+                seq_diff=abs(current_seq-previous_seq)
+                if 50 < seq_diff < 4000:
+                    print(f"Warning: Deauth Attack Detected! Abnormal Sequence Number!")
+                    app.after(0, trigger_warning, src_mac, "N/A (SEQ Attack)")
+                    return
+                
 
-                    if current_rssi is not None:
+                # 2nd Round Checking: Detect the RSSI using RadioTap (the tag that alfa card added onto the packet)
+                if packet.haslayer(RadioTap):
+                    try:
+                        current_rssi=packet[RadioTap].dBm_AntSignal
+                        if current_rssi is not None:
+                            previous_rssi = mac_history[src_mac].get("rssi", current_rssi)
+                            rssi_delta = abs(current_rssi - previous_rssi)
                         
-                        if src_mac in mac_history:
-                            previous_time=mac_history[src_mac]["time"]
-                            previous_rssi=mac_history[src_mac]["rssi"]
-
-                            time_diff=current_time - previous_time
-                            rssi_delta=abs(current_rssi-previous_rssi)
-                             
-                            # The attacker's deauth attack conditions (3 criteria):
-                            # 3) RSSI [The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
-                            if time<=0.1 and rssi_delta>10:
+                        
+                            # The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
+                            if rssi_delta>10:
                                 print(f"Warning:Broadcast Deauth Attack Detected")
                                 print(f"  - Source Mac Address: {src_mac}")
                                 print(f"  - Destination Mac Address: {dest_mac}")
 
-                                app.after(0, trigger_warning, src_mac)
-                            
-                            mac_history[src_mac]={"time":current_time,"rssi":current_rssi}
-                except AttributeError:
+                                app.after(0, trigger_warning, src_mac, rssi_delta)
+                                return       
+                           
+                    except AttributeError:
+                        pass
+            if packet.haslayer(RadioTap) and current_rssi is None:
+                try:
+                    current_rssi = packet[RadioTap].dBm_AntSignal
+                except:
                     pass
+
+                mac_history[src_mac]={"time":current_time,"seq": current_seq,"rssi":current_rssi if current_rssi is not None else mac_history.get(src_mac, {}).get("rssi")}
+
 
 def keep_sniffing():
     print("Monitoring WiFi Packets")

