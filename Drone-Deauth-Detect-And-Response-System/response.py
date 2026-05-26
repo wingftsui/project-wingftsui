@@ -5,6 +5,7 @@ import json
 import ipaddress
 import threading
 from scapy.all import RadioTap, Dot11, LLC, SNAP, IP, UDP, sendp
+import os
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -87,11 +88,32 @@ def btn_trigger_land():
     threading.Thread(target=active_response_land, args=(selected_drone, final_ip), daemon=True).start()
 
 def counter_deauth():
-    blank
-    blank
-    blank
-    blank
-    blank
+    drone_model = drone_combo.get()
+    profiles = load_drone_json()
+    if not profiles or drone_model not in profiles:
+        status_label.configure(text="Error: Drone profile not found", text_color="red")        
+        return
+    profile = profiles[drone_model]    
+    target_mac = profile.get("mac_address")
+    gateway_mac = profile.get("ap_mac")
+    iface = profile.get("interface", "wlan0")    
+    channel = profile.get("channel", "1")
+
+    if not target_mac or not gateway_mac:        
+        status_label.configure(text="Error: MAC missing in JSON", text_color="red")
+        return
+    status_label.configure(text=f"INITIATING DEAUTH DEFENSE...", text_color="orange")
+
+    try:
+        os.system(f"iwconfig {iface} channel {channel}")
+        pkt = RadioTap() / Dot11(addr1=target_mac, addr2=gateway_mac, addr3=gateway_mac) / Dot11Deauth(reason=3)
+        sendp(pkt, iface=iface, count=40, inter=0.2, verbose=False)
+        status_label.configure(text="Deauth Sequence Completed", text_color="green")
+
+    except Exception as e:
+        status_label.configure(text=f"Deauth Failed: {e}", text_color="red")
+
+
 
 def btn_trigger_counter():
     threading.Thread(target=counter_deauth, daemon=True).start()
