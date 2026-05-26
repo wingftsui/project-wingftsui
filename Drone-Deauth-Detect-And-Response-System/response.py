@@ -28,13 +28,31 @@ def load_drone_json(filepath='drones.json'):
         status_label.configure(text=f'Wrong file format. It should be json file')
 
 
-target_mac=.get("mac_address")
-iface-profile.get("interface","wlan0") 
 
-fake_client_mac = "00:AB:CD:EF:GH:IJ" 
-fake_client_ip = "192.168.10.2"
+def active_response_land(drone_model=None, custom_ip=None):
+    profiles = load_drone_json()
+    if "Error" in profiles:
+        status_label.configure(text=f"Error: {profiles['Error']}", text_color="red")
+        return
+    if drone_model not in profiles:
+        status_label.configure(text="Error: Cannot find drone_model in json.", text_color="red")
+        return
 
-status_label.configure(text=f"\n Will send active defense land command")
+    profile = profiles[drone_model]
+    
+    target_mac = profile.get("mac_address")
+    if not target_mac:
+        status_label.configure(text="Error: Missing mac_address in JSON. Aborting.", text_color="red")
+        return
+
+    iface = profile.get("interface", "wlan0")
+    target_ip = custom_ip if custom_ip else profile.get("default_ip", "1.2.3.4")
+    target_port = profile.get("port", 1234)
+
+    fake_client_mac = "00:AB:CD:EF:GH:IJ" 
+    fake_client_ip = "1.2.3.4"
+
+    status_label.configure(text=f"\n Will send active defense land command")
 
 def send_scapy_cmd(cmd_str):
     profiles=load_drone_json()   
@@ -85,6 +103,15 @@ def btn_trigger_land():
     final_ip = input_ip if input_ip.strip() != "" else None 
     threading.Thread(target=active_response_land, args=(selected_drone, final_ip), daemon=True).start()
 
+def counter_deauth():
+    blank
+    blank
+    blank
+    blank
+    blank
+
+def btn_trigger_counter():
+    threading.Thread(target=counter_deauth, daemon=True).start()
 
 title_label = ctk.CTkLabel(app, text="Active Defense Response System", font=("Arial", 24, "bold"))
 title_label.pack(pady=(20, 10))
@@ -106,5 +133,8 @@ ip_entry.pack(pady=10)
 land_btn = ctk.CTkButton(app, text="EMERGENCY LAND", fg_color="red", hover_color="darkred", 
                          font=("Arial", 20, "bold"), height=50, command=btn_trigger_land)
 land_btn.pack(pady=30)
-
+counter_btn = ctk.CTkButton(app, text="Counter Deauth!", 
+                            fg_color="orange", hover_color="darkorange", 
+                            font=("Arial", 16, "bold"), height=40, command=btn_trigger_counter)
+counter_btn.pack(pady=10)
 app.mainloop()
