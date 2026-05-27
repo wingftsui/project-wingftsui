@@ -125,7 +125,7 @@ status_label = ctk.CTkLabel(app, text="Status: Standby", text_color="white", fon
 status_label.pack(pady=(0, 20))
 
 drone_data = load_drone_json()
-drone_list = list(drone_data.keys()) if "Error" not in drone_data else ["DRONE1"]
+drone_list = list(drone_data.keys()) if (drone_data is not None and "Error" not in drone_data) else ["DRONE 1"]
 
 drone_combo = ctk.CTkComboBox(app, values=drone_list, width=200)
 drone_combo.pack(pady=10)

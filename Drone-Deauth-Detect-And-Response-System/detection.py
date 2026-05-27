@@ -97,7 +97,7 @@ def detect_deauth(packet):
 
 def keep_sniffing():
     print("Monitoring WiFi Packets")
-    sniff(iface="wlan0",prn=detect_deauth,store=0)
+    sniff(iface="wlan1",prn=detect_deauth,store=0)
 
 sniff_thread = threading.Thread(target=keep_sniffing,daemon=True)
 sniff_thread.start()
