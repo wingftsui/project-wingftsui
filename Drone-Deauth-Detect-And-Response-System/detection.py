@@ -37,62 +37,66 @@ def detect_deauth(packet):
     # Detect Wifi packet
     if packet.haslayer(Dot11):
         dest_mac=packet.addr1
+        src_mac =packet.addr2
         pkt_type=packet.type
         pkt_subtype=packet.subtype
-        
-        # Check if it is deauth.
-        # (1) it is management frame
-        # (2) it is deauth or disassociation.
-        if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
-            src_mac =packet.addr2
-            current_time=packet.time
 
-            current_seq=packet[Dot11].SC>>4
-            current_rssi=None
-            
+        if src_mac is None:
+            return
+
+        current_time=packet.time
+        current_seq=packet[Dot11].SC>>4
+        current_rssi=None
+
+        # Extract RSSI
+        if packet.haslayer(RadioTap):
+            try:
+                current_rssi=packet[RadioTap].dBm_AntSignal
+            except AttributeError:
+                pass
+
+        # The conditions of deauth:
+        # Check whether it is management frame.
+        # Check whether it is deauth or disassociation packet
+        if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
+  
             if src_mac in mac_history:
                 previous_time = mac_history[src_mac]["time"]
                 previous_seq = mac_history[src_mac].get("seq", current_seq)
                 time_diff = current_time - previous_time
+
                 if time_diff <= 0.1:
                 
                 # The system has 2 round checking to distinguish attacker deauth attack.
-                
+
                 # 1st Round Checking: Check the sequence number in management frame
                     seq_diff = abs(current_seq-previous_seq)
                     if 50 < seq_diff < 4000:
                         print(f"Warning: Deauth Attack Detected! Abnormal Sequence Number!")
-                        app.after(0, trigger_warning, src_mac, "N/A (SEQ Attack)")
+                        app.after(0, trigger_warning, src_mac, "Abnormal Sequence Number")
                         return
                 
-
                     # 2nd Round Checking: Detect the RSSI using RadioTap (the tag that alfa card added onto the packet)
-                    if packet.haslayer(RadioTap):
-                        try:
-                            current_rssi=packet[RadioTap].dBm_AntSignal
-                            if current_rssi is not None:
-                                previous_rssi = mac_history[src_mac].get("rssi", current_rssi)
-                                rssi_delta = abs(current_rssi - previous_rssi)
-                        
-                        
-                                # The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
-                                if rssi_delta>10:
-                                    print(f"Warning:Broadcast Deauth Attack Detected")
-                                    print(f"  - Source Mac Address: {src_mac}")
-                                    print(f"  - Destination Mac Address: {dest_mac}")
-
-                                    app.after(0, trigger_warning, src_mac, rssi_delta)
-                                    return       
+                    if current_rssi is not None:
+                        previous_rssi = mac_history[src_mac].get("rssi", current_rssi)
+                        rssi_delta = abs(current_rssi - previous_rssi)
+                
+                        # The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
+                        if rssi_delta>10:
+                            print(f"Warning: Deauth Attack Detected! Abnormal RSSI")
+                            print(f"  - Source Mac Address: {src_mac}")
+                            print(f"  - Destination Mac Address: {dest_mac}")
+                            app.after(0, trigger_warning, src_mac, dest_mac, f"RSSI Delta:{rssi_delta} dBm")
+                            return       
                            
-                        except AttributeError:
-                            pass
-            if packet.haslayer(RadioTap) and current_rssi is None:
-                try:
-                    current_rssi = packet[RadioTap].dBm_AntSignal
-                except:
-                    pass
-
-                mac_history[src_mac]={"time":current_time,"seq": current_seq,"rssi":current_rssi if current_rssi is not None else mac_history.get(src_mac, {}).get("rssi")}
+                
+                
+            if current_rssi is None:
+                mac_history[src_mac]={
+                    "time":current_time,
+                    "seq": current_seq,
+                    "rssi":current_rssi 
+                }
 
 
 def keep_sniffing():
