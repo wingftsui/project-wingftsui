@@ -25,10 +25,10 @@ def load_drone_json(filepath='drones.json'):
     # The details of the json content are in the readme file under "Drone-Deauth-Detect-And-Response-System" folder.  
     except FileNotFoundError:
         status_label.configure(text=f'No json config file found.')
-        return()
+        return{}
     except json.JSONDecodeError:
         status_label.configure(text=f'Wrong file format. It should be json file')
-        return()
+        return{}
 
 
 def active_response_land(drone_model=None, custom_ip=None):
