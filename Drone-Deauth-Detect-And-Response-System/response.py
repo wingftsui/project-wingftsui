@@ -4,7 +4,7 @@ import time
 import json
 import ipaddress
 import threading
-from scapy.all import RadioTap, Dot11, LLC, SNAP, IP, UDP, sendp
+from scapy.all import RadioTap, Dot11, Dot11Deauth, LLC, SNAP, IP, UDP, sendp
 import os
 
 ctk.set_appearance_mode("dark")
@@ -25,9 +25,10 @@ def load_drone_json(filepath='drones.json'):
     # The details of the json content are in the readme file under "Drone-Deauth-Detect-And-Response-System" folder.  
     except FileNotFoundError:
         status_label.configure(text=f'No json config file found.')
+        return()
     except json.JSONDecodeError:
         status_label.configure(text=f'Wrong file format. It should be json file')
-
+        return()
 
 
 def active_response_land(drone_model=None, custom_ip=None):
@@ -50,23 +51,23 @@ def active_response_land(drone_model=None, custom_ip=None):
     target_ip = custom_ip if custom_ip else profile.get("default_ip", "1.2.3.4")
     target_port = profile.get("port", 1234)
 
-    fake_client_mac = "00:AB:CD:EF:GH:IJ" 
+    fake_client_mac = "00:AB:CD:EF:FF:FF" 
     fake_client_ip = "1.2.3.4"
 
     status_label.configure(text=f"\n Will send active defense land command")
 
     def send_scapy_cmd(cmd_str):
-        dot11 = Dot11(type=2, subtype=0, addr1=target_mac, addr2=fake_client_mac, addr3=target_mac)
+        dot11 = Dot11(type=2, subtype=0, FCfield=1, addr1=target_mac, addr2=fake_client_mac, addr3=target_mac)
     
-        pkt = RadioTap() / dot11 / LLC() / SNAP() / IP(src=fake_client_ip, dst=target_ip) / UDP(sport=8889, dport=target_port) / cmd_str
+        pkt = RadioTap() / dot11 / LLC() / SNAP() / IP(src=fake_client_ip, dst=target_ip) / UDP(sport=8889, dport=target_port) / cmd_str.encode('utf-8')
         
         sendp(pkt, iface=iface, verbose=False)
 
 
     try:
-        if profile.get("initial_command"):
+        if profile.get("initial_cmd"):
             status_label.configure(text="send initial command")
-            send_scapy_cmd(profile["initial_command"])
+            send_scapy_cmd(profile["initial_cmd"])
             time.sleep(0.5)
 
         if profile.get("land_cmd"):
@@ -130,7 +131,10 @@ drone_list = list(drone_data.keys()) if (drone_data is not None and "Error" not 
 drone_combo = ctk.CTkComboBox(app, values=drone_list, width=200)
 drone_combo.pack(pady=10)
 if drone_list:
-    drone_combo.set(drone_list[0])
+    if "Tello" in drone_list:
+        drone_combo.set("Tello")
+    else:    
+        drone_combo.set(drone_list[0])
 
 ip_entry = ctk.CTkEntry(app, placeholder_text="Custom IP (Optional)", width=200)
 ip_entry.pack(pady=10)

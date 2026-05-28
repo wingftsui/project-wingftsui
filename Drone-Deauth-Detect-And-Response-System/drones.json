@@ -1,7 +1,8 @@
 {
     "DRONE1": {
         "default_ip": "1.2.3.4",
-        "mac_address"" "00:AB:CD:EF:GH:IJ",
+        "mac_address": "00:AB:CD:EF:FF:FF",
+        "ap_mac": "60:60:1F:60:9F:CD",
         "interface": "wlan0",
         "port": 1111,
         "initial_cmd": "command",
@@ -10,7 +11,8 @@
     },
     "Tello": {
         "default_ip": "192.168.10.1",
-        "mac_address"" "60:60:1F:60:9F:CD",
+        "mac_address": "60:60:1F:60:9F:CD",
+        "ap_mac": "60:60:1F:60:9F:CD",
         "interface": "wlan0",
         "port": 8889,
         "initial_cmd": "command",
