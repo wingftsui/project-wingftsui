@@ -3,9 +3,6 @@ from scapy.all import sniff
 from scapy.layers.dot11 import Dot11, RadioTap
 import threading
 import time
-import logging
-from logging.handlers import RotatingFileHandler
-import os
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -15,95 +12,92 @@ app = ctk.CTk()
 app.title("Drone Deauth Detection Module")
 app.geometry("600x300")
 
-#Showing Status
-label = ctk.CTkLabel(app, text="Status:Detecting (Safe)", text_color="green",font=("Arial", 20))
+# Showing Status
+label = ctk.CTkLabel(app, text="Status: Detecting (Safe)", text_color="green", font=("Arial", 20))
 label.pack(pady=50)
 
-
-mac_history={}
+mac_history = {}
 
 # Detailed Warning Display
-def trigger_warning(src_mac, dest_mac,reason):
+def trigger_warning(src_mac, dest_mac, reason):
     global label
-    warning_text=(
+    warning_text = (
         f"Warning: Deauth Detected! \n"
-        f"Attacker (Source) mac:{src_mac} \n"
-        f"Target (Destination):{dest_mac}\n"
+        f"Attacker (Source) mac: {src_mac} \n"
+        f"Target (Destination): {dest_mac}\n"
         f"Reason: {reason}"
     )    
-    label.configure(text=warning_text,text_color="red")
+    label.configure(text=warning_text, text_color="red")
 
 def detect_deauth(packet):
     # Detect Wifi packet
     if packet.haslayer(Dot11):
-        dest_mac=packet.addr1
-        src_mac =packet.addr2
-        pkt_type=packet.type
-        pkt_subtype=packet.subtype
+        dest_mac = packet.addr1
+        src_mac = packet.addr2
+        pkt_type = packet.type
+        pkt_subtype = packet.subtype
 
         if src_mac is None:
             return
 
-        current_time=packet.time
-        current_seq=packet[Dot11].SC>>4
-        current_rssi=None
+        current_time = time.time() 
+        
+        try:
+            current_seq = packet[Dot11].SC >> 4
+        except AttributeError:
+            current_seq = 0
+
+        current_rssi = None
 
         # Extract RSSI
         if packet.haslayer(RadioTap):
             try:
-                current_rssi=packet[RadioTap].dBm_AntSignal
+                current_rssi = packet[RadioTap].dBm_AntSignal
             except AttributeError:
                 pass
 
-        # The conditions of deauth:
-        # Check whether it is management frame.
-        # Check whether it is deauth or disassociation packet
-        if pkt_type==0 and (pkt_subtype==12 or pkt_subtype==10):
-  
+        # Detection Logic:
+        # Check if it is management frame
+        # And check if it is deauth or disassociation
+        if pkt_type == 0 and (pkt_subtype == 12 or pkt_subtype == 10):
             if src_mac in mac_history:
                 previous_time = mac_history[src_mac]["time"]
                 previous_seq = mac_history[src_mac].get("seq", current_seq)
+                previous_rssi = mac_history[src_mac].get("rssi", None)
+                
                 time_diff = current_time - previous_time
 
+            
                 if time_diff <= 0.1:
-                
-                # The system has 2 round checking to distinguish attacker deauth attack.
-
-                # 1st Round Checking: Check the sequence number in management frame
-                    seq_diff = abs(current_seq-previous_seq)
+                    
+                    # 1st Round Checking: Check any abnormal situation in sequence number in management frame
+                    seq_diff = abs(current_seq - previous_seq)
                     if 50 < seq_diff < 4000:
                         print(f"Warning: Deauth Attack Detected! Abnormal Sequence Number!")
-                        app.after(0, trigger_warning, src_mac, "Abnormal Sequence Number")
+                        app.after(0, trigger_warning, src_mac, dest_mac, "Abnormal Sequence Number")
                         return
                 
-                    # 2nd Round Checking: Detect the RSSI using RadioTap (the tag that alfa card added onto the packet)
-                    if current_rssi is not None:
-                        previous_rssi = mac_history[src_mac].get("rssi", current_rssi)
+                    # 2nd Round Checking: Detect the RSSI using RadioTap to find whether there is abnormal situation
+                    if current_rssi is not None and previous_rssi is not None:
                         rssi_delta = abs(current_rssi - previous_rssi)
-                
-                        # The RSSI difference is larger than 10 dBm compare with 0.1s before.]    
-                        if rssi_delta>10:
+                        if rssi_delta > 0:
                             print(f"Warning: Deauth Attack Detected! Abnormal RSSI")
                             print(f"  - Source Mac Address: {src_mac}")
                             print(f"  - Destination Mac Address: {dest_mac}")
-                            app.after(0, trigger_warning, src_mac, dest_mac, f"RSSI Delta:{rssi_delta} dBm")
-                            return       
-                           
-                
-                
-            if current_rssi is None:
-                mac_history[src_mac]={
-                    "time":current_time,
-                    "seq": current_seq,
-                    "rssi":current_rssi 
-                }
-
+                            app.after(0, trigger_warning, src_mac, dest_mac, f"RSSI Delta: {rssi_delta} dBm")
+                            return
+        
+        mac_history[src_mac] = {
+            "time": current_time,
+            "seq": current_seq,
+            "rssi": current_rssi 
+        }
 
 def keep_sniffing():
-    print("Monitoring WiFi Packets")
-    sniff(iface="wlan1",prn=detect_deauth,store=0)
+    print("Monitoring WiFi Packets...")
+    sniff(iface="wlan0", prn=detect_deauth, store=0)
 
-sniff_thread = threading.Thread(target=keep_sniffing,daemon=True)
+sniff_thread = threading.Thread(target=keep_sniffing, daemon=True)
 sniff_thread.start()
 
 app.mainloop()

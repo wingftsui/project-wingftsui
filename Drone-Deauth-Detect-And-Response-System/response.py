@@ -46,7 +46,12 @@ def active_response_land(drone_model=None, custom_ip=None):
     if not target_mac:
         status_label.configure(text="Error: Missing mac_address in JSON. Aborting.", text_color="red")
         return
-
+    
+    # Broadcast is prohibited in this system
+    if target_mac.upper()=="FF:FF:FF:FF:FF:FF":
+        status_label.configure(text="Broadcast is prohibited in this system",text_colour="red")
+        return
+    
     iface = profile.get("interface", "wlan0")
     target_ip = custom_ip if custom_ip else profile.get("default_ip", "1.2.3.4")
     target_port = profile.get("port", 1234)
